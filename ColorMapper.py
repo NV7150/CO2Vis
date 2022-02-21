@@ -2,7 +2,8 @@ import math
 
 import numpy as np
 import open3d as o3d
-from scipy.spatial import Delaunay
+from scipy.spatial import Delaunay, Voronoi, ConvexHull
+from mathtools import triangle_projection, softmax, get_g
 
 
 class ColorMapper:
@@ -46,9 +47,9 @@ class Point:
     pos: np.ndarray
     id: str
 
-    def __init__(self, pos, id):
+    def __init__(self, pos, s_id):
         self.pos = pos
-        self.id = id
+        self.id = s_id
 
 
 class Tetrahedron:
@@ -216,11 +217,6 @@ class SimplyHeatMapper:
                 scores.append(1 / math.pow(d, 2))
                 vals.append(prop["val"])
 
-            def softmax(x):
-                y = np.exp(x)
-                f_x = y / np.sum(np.exp(x))
-                return f_x
-
             scores = np.array(scores)
             vals = np.array(vals)
             if scores.sum() >= 1.0:
@@ -235,3 +231,124 @@ class SimplyHeatMapper:
 
         return pcd
 
+
+class MeshedHull:
+    def __init__(self, origin: ConvexHull = None, triangles = None):
+        if origin is None and triangles is None:
+            raise Exception()
+
+        if origin is not None:
+            self.origin = origin
+            self.triangles = []
+            for line in origin.simplices:
+                self.triangles.append(origin.vertices[line])
+
+        else:
+
+            self.triangles = triangles
+
+
+    def in_hull(self, p):
+        for tri in self.triangles:
+            p = triangle_projection(p, tri)
+            res = [np.cross[tri[i], p][2] > 0 for i in range(3)]
+
+            if res[0] != res[1] or res[1] != res[2] or res[2] != res[0]:
+                return False
+        return True
+
+
+class VoronoiMapper:
+    def __init__(self, pcd, sensor_points: list[Point], c: ColorMapper):
+        sensor_poses = [p.pos for p in sensor_points]
+
+        v = Voronoi(sensor_poses)
+        hulls = {}
+        for i in range(len(sensor_points)):
+            points = v.regions[v.point_region[i]]
+
+            hull = ConvexHull(points)
+            hulls.setdefault(i, hull)
+
+
+class SoftmaxMapper:
+    def __init__(self, pcd, sensor_points: list[Point], c: ColorMapper, cut_th=0.05, cut_limit=3):
+        self.c = c
+
+        # { sensor_id: [sensor_index] }
+        self.affect_points = {}
+        # { point_index: [(sensor_id, proportion)] }
+        self.cal_sensors = {}
+        # { sensor_id: sensor_value }
+        self.values = {}
+
+        points = np.asarray(pcd.points)
+
+        for p_i, p in enumerate(points):
+            distances = []
+            ids = []
+            for s_p in sensor_points:
+                d = np.linalg.norm(p - s_p.pos)
+                distances.append(d)
+                ids.append(s_p.id)
+            distances = np.array(distances)
+            distances = -distances + np.max(distances)
+            props = get_g(distances)
+
+            zipped_id_prop = [(ids[i], prop) for i, prop in enumerate(props) if prop > cut_th]
+
+            if len(zipped_id_prop) < cut_limit:
+                zipped_id_prop = sorted(zip(ids, props), key=lambda x: x[1], reverse=True)[:cut_limit]
+
+            ids = [zipped[0] for zipped in zipped_id_prop]
+            props = np.array([zipped[1] for zipped in zipped_id_prop])
+
+            dif = 1.0 - props.sum()
+            if dif > 1e-5:
+                props += (dif / len(props))
+
+            dict_id_prop = []
+            for i, prop in enumerate(props):
+                dict_id_prop.append((ids[i], prop))
+
+            self.cal_sensors.setdefault(p_i, dict_id_prop)
+
+            for s_id in ids:
+                if s_id not in self.affect_points.keys():
+                    self.affect_points.setdefault(s_id, [])
+                    self.values.setdefault(s_id, 0)
+                self.affect_points[s_id].append(p_i)
+
+        self.points = np.asarray(pcd.points)
+        self.colors = np.asarray([c(0) for i in range(len(points))])
+
+    def update_value(self, sensor_id, value):
+        self.values[sensor_id] = value
+
+        if sensor_id not in self.affect_points.keys():
+            return
+
+        affecting_points = self.affect_points[sensor_id]
+
+        for p in affecting_points:
+            self.update_point(p)
+
+    def update_point(self, point_index):
+        sensors = self.cal_sensors[point_index]
+
+        val_sum = 0
+        for sensor in sensors:
+            val = self.values[sensor[0]] * sensor[1]
+            val_sum += val
+
+        self.colors[point_index] = self.c(val_sum)
+
+    def recal_all(self):
+        for i in range(len(self.points)):
+            self.update_point(i)
+
+    def export_pcd(self):
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(self.points)
+        pcd.colors = o3d.utility.Vector3dVector(self.colors)
+        return pcd
