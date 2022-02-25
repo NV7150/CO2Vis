@@ -1,9 +1,12 @@
 import math
+import threading
 
 import numpy as np
 import open3d as o3d
 from scipy.spatial import Delaunay, Voronoi, ConvexHull
 from mathtools import triangle_projection, softmax, get_g
+from RequestHandler import SensorData
+from ThreadingTools import Locker
 
 
 class ColorMapper:
@@ -322,8 +325,13 @@ class SoftmaxMapper:
         self.points = np.asarray(pcd.points)
         self.colors = np.asarray([c(0) for i in range(len(points))])
 
+        self.locker = Locker()
+
+        self.sensor_points = sensor_points
+
     def update_value(self, sensor_id, value):
-        self.values[sensor_id] = value
+        with self.locker:
+            self.values[sensor_id] = value
 
         if sensor_id not in self.affect_points.keys():
             return
@@ -333,22 +341,40 @@ class SoftmaxMapper:
         for p in affecting_points:
             self.update_point(p)
 
+    def update_values(self, values: list[SensorData]):
+        affected_points = []
+        for value in values:
+            if not abs(self.values[value.sensor_id] - value.co2) < 1e-5:
+                continue
+
+            with self.locker:
+                self.values[value.sensor_id] = value.co2
+            affected_points.extend(self.affect_points[value.sensor_id])
+
+        affected_points = list(set(affected_points))
+
+        for p in affected_points:
+            self.update_point(p)
+
     def update_point(self, point_index):
-        sensors = self.cal_sensors[point_index]
+        with self.locker:
+            sensors = self.cal_sensors[point_index]
 
-        val_sum = 0
-        for sensor in sensors:
-            val = self.values[sensor[0]] * sensor[1]
-            val_sum += val
+            val_sum = 0
+            for sensor in sensors:
+                val = self.values[sensor[0]] * sensor[1]
+                val_sum += val
 
-        self.colors[point_index] = self.c(val_sum)
+            self.colors[point_index] = self.c(val_sum)
 
     def recal_all(self):
-        for i in range(len(self.points)):
-            self.update_point(i)
+        with self.locker:
+            for i in range(len(self.points)):
+                self.update_point(i)
 
     def export_pcd(self):
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(self.points)
-        pcd.colors = o3d.utility.Vector3dVector(self.colors)
+        with self.locker:
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(self.points)
+            pcd.colors = o3d.utility.Vector3dVector(self.colors)
         return pcd
