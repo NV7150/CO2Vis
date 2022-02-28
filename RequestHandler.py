@@ -4,12 +4,20 @@ import json
 import requests
 
 
-def get_current_data():
+def get_current_data(timeout=1):
     url = "http://bus.hwhhome.net:8080/bus"
 
-    response = requests.post(url, headers={'Content-Type': 'application/json'}, json={'search': 'SHOUNAN330A7040'})
+    try:
+        response = requests.post(
+            url,
+            headers={'Content-Type': 'application/json'},
+            json={'search': 'SHOUNAN330A7040'},
+            timeout=timeout
+        )
 
-    return response.json()
+        return response.json()
+    except requests.exceptions.Timeout:
+        return -1
 
 
 def convert_jsons(jsons, time_th=-1):

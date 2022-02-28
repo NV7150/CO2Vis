@@ -275,7 +275,7 @@ class VoronoiMapper:
 
 
 class SoftmaxMapper:
-    def __init__(self, pcd, sensor_points: list[Point], c: ColorMapper, cut_th=0.05, cut_limit=3):
+    def __init__(self, pcd, sensor_points: list[Point], c: ColorMapper, cut_th=-1, cut_limit=3):
         self.c = c
 
         # { sensor_id: [sensor_index] }
@@ -287,6 +287,9 @@ class SoftmaxMapper:
 
         points = np.asarray(pcd.points)
 
+        if cut_th < 0:
+            cut_th = 1.0 / (len(sensor_points) * 4)
+
         for p_i, p in enumerate(points):
             distances = []
             ids = []
@@ -294,8 +297,8 @@ class SoftmaxMapper:
                 d = np.linalg.norm(p - s_p.pos)
                 distances.append(d)
                 ids.append(s_p.id)
-            distances = np.array(distances)
-            distances = -distances + np.max(distances)
+            distances = np.array(distances, dtype=float)
+            distances = -distances + np.max(distances) + np.min(distances)
             props = get_g(distances)
 
             zipped_id_prop = [(ids[i], prop) for i, prop in enumerate(props) if prop > cut_th]
@@ -344,7 +347,7 @@ class SoftmaxMapper:
     def update_values(self, values: list[SensorData]):
         affected_points = []
         for value in values:
-            if not abs(self.values[value.sensor_id] - value.co2) < 1e-5:
+            if value.sensor_id not in self.values.keys() or abs(self.values[value.sensor_id] - value.co2) < 1e-5:
                 continue
 
             with self.locker:
