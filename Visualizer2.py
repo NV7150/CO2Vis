@@ -1,3 +1,5 @@
+import datetime
+
 import open3d as o3d
 import open3d.visualization.gui as gui
 import numpy as np
@@ -24,7 +26,7 @@ def parse_dict_to_points(dic):
     return points
 
 
-def visualize(pcd_path, mesh_path, folder_path, time_th=-1, reflesh_rate=10):
+def visualize(pcd_path, mesh_path, folder_path, time_th=-1, reflesh_rate=10, random_data=False):
     pcd, scene, trans, mesh_id = load_pcd_with_mesh(pcd_path, mesh_path)
 
     pos_dict = define_qr_pos(
@@ -34,20 +36,36 @@ def visualize(pcd_path, mesh_path, folder_path, time_th=-1, reflesh_rate=10):
         trans=trans
     )
 
+    print("define qr pos completed")
+
     points = parse_dict_to_points(pos_dict)
+
+    # 下４桁固定
+    points = [Point(p.pos, p.id[-4:]) for p in points]
+    print(points)
 
     color = ColorMapper(500, 700, 1000)
     mapper = SoftmaxMapper(pcd, points, color, cut_th=0)
 
     def update_tick(mapper_ins, gui_ins):
         while True:
-            values = get_current_data()
+            values = -1
+            if not random_data:
+                values = get_current_data()
+            else:
+                values = {"data": [
+                    {
+                        "sensorid": p.id,
+                        "timeline": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        "senco2": int(random.uniform(500, 1000))
+                    }
+                    for p in points
+                ]}
 
             if values == -1:
                 print("connection timed out")
                 continue
 
-            print(values.keys())
             datas = convert_jsons(values, time_th)
 
             mapper_ins.update_values(datas)

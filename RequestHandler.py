@@ -42,7 +42,8 @@ class SensorData:
     @staticmethod
     def from_json(json_data):
         sensor_data = SensorData()
-        sensor_data.sensor_id = str(json_data['sensorid'])
+        # 下４桁に固定
+        sensor_data.sensor_id = str(json_data['sensorid'])[-4:]
         sensor_data.timeline = datetime.datetime.strptime(json_data['timeline'], '%Y-%m-%d %H:%M:%S')
         sensor_data.co2 = int(json_data['senco2'])
 

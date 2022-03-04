@@ -56,7 +56,7 @@ class Point:
 
 
 class Tetrahedron:
-    def __init__(self, points: list[Point]):
+    def __init__(self, points):
         self.points = points
 
     def get_scale(self):
@@ -86,7 +86,7 @@ class Tetrahedron:
 
 
 class HeatMapper:
-    def __init__(self, pcd, sensor_points: list[Point], color_mapper: ColorMapper):
+    def __init__(self, pcd, sensor_points, color_mapper):
 
         self.pcd2tri = {}
         self.sensor_id2pcdi = {}
@@ -197,7 +197,7 @@ class HeatMapper:
 
 
 class SimplyHeatMapper:
-    def __init__(self, pcd, c: ColorMapper):
+    def __init__(self, pcd, c):
         self.pcd = pcd
         self.c = c
         self.pos_map = {}
@@ -236,7 +236,7 @@ class SimplyHeatMapper:
 
 
 class MeshedHull:
-    def __init__(self, origin: ConvexHull = None, triangles = None):
+    def __init__(self, origin = None, triangles = None):
         if origin is None and triangles is None:
             raise Exception()
 
@@ -262,7 +262,7 @@ class MeshedHull:
 
 
 class VoronoiMapper:
-    def __init__(self, pcd, sensor_points: list[Point], c: ColorMapper):
+    def __init__(self, pcd, sensor_points, c):
         sensor_poses = [p.pos for p in sensor_points]
 
         v = Voronoi(sensor_poses)
@@ -275,7 +275,7 @@ class VoronoiMapper:
 
 
 class SoftmaxMapper:
-    def __init__(self, pcd, sensor_points: list[Point], c: ColorMapper, cut_th=-1, cut_limit=3):
+    def __init__(self, pcd, sensor_points, c, cut_th=-1, cut_limit=3):
         self.c = c
 
         # { sensor_id: [sensor_index] }
@@ -344,7 +344,7 @@ class SoftmaxMapper:
         for p in affecting_points:
             self.update_point(p)
 
-    def update_values(self, values: list[SensorData]):
+    def update_values(self, values):
         affected_points = []
         for value in values:
             if value.sensor_id not in self.values.keys() or abs(self.values[value.sensor_id] - value.co2) < 1e-5:

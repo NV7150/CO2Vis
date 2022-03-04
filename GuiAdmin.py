@@ -40,7 +40,7 @@ class GuiWrapper:
             self.widget.scene.clear_geometry()
             self.widget.scene.add_geometry("Points", pcd, self.default_mat)
 
-    def update_labels(self, labels: list[LabelData]):
+    def update_labels(self, labels):
         with self.locker:
             for label in self.labels:
                 self.widget.remove_3d_label(label)
