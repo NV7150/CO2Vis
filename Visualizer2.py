@@ -26,8 +26,19 @@ def parse_dict_to_points(dic):
     return points
 
 
-def visualize(pcd_path, mesh_path, folder_path, time_th=-1, reflesh_rate=10, random_data=False):
+def visualize(
+        pcd_path,
+        mesh_path,
+        folder_path,
+        time_th=-1,
+        reflesh_rate=10,
+        random_data=False,
+        voxel=-1
+):
     pcd, scene, trans, mesh_id = load_pcd_with_mesh(pcd_path, mesh_path)
+
+    if voxel != -1:
+        pcd = pcd.voxel_down_sample(voxel_size=voxel)
 
     pos_dict = define_qr_pos(
         glob.glob(f"{folder_path}/frame*.json"),

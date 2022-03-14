@@ -55,6 +55,12 @@ def decode_image(path: str):
 
 def segment_image(path: str):
     img = cv2.imread(path)
+
+    # 二値化してQR読み取り
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    ret, th = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU)
+    img = cv2.cvtColor(th, cv2.COLOR_GRAY2BGR)
+    
     value = decode(img, symbols=[ZBarSymbol.QRCODE])
 
     if not value:
