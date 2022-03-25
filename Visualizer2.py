@@ -36,6 +36,7 @@ def visualize(
         voxel=-1
 ):
     pcd, scene, trans, mesh_id = load_pcd_with_mesh(pcd_path, mesh_path)
+    print("pcd loaded")
 
     if voxel != -1:
         pcd = pcd.voxel_down_sample(voxel_size=voxel)
@@ -75,6 +76,7 @@ def visualize(
 
             if values == -1:
                 print("connection timed out")
+                time.sleep(reflesh_rate)
                 continue
 
             datas = convert_jsons(values, time_th)

@@ -295,10 +295,13 @@ class SoftmaxMapper:
             ids = []
             for s_p in sensor_points:
                 d = np.linalg.norm(p - s_p.pos)
+                if d < 1e-5:
+                    d += 1e-5
                 distances.append(d)
                 ids.append(s_p.id)
             distances = np.array(distances, dtype=float)
-            distances = -distances + np.max(distances) + np.min(distances)
+            distances = 1 / np.power(distances, 2)
+            # distances = -distances + np.max(distances) + np.min(distances)
             props = get_g(distances)
 
             zipped_id_prop = [(ids[i], prop) for i, prop in enumerate(props) if prop > cut_th]
