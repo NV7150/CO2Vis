@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def add_point(pcd, point, scale=0.005, color=None):
     if color is None:
         color = [255, 0, 0]
