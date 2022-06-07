@@ -334,6 +334,7 @@ class SoftmaxMapper:
         self.locker = Locker()
 
         self.sensor_points = sensor_points
+        self.base_colors = np.array(pcd.colors)
 
     def update_value(self, sensor_id, value):
         with self.locker:
@@ -371,7 +372,7 @@ class SoftmaxMapper:
                 val = self.values[sensor[0]] * sensor[1]
                 val_sum += val
 
-            self.colors[point_index] = self.c(val_sum)
+            self.colors[point_index] = self.c(val_sum) * 0.5 + self.base_colors[point_index] * 0.5
 
     def recal_all(self):
         with self.locker:
