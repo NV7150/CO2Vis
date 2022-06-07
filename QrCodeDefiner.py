@@ -2,7 +2,8 @@ import numpy as np
 
 from FrameLoader import Frame
 from QrCodeDecoder import QRCode, segment_image
-from QrPointer import ray_cast_qr, get_qr_from_frame, ray_cast_qr_mesh
+from QrPointer import ray_cast_qr, get_qr_from_frame
+from ThreeDLib import raycast2dest_mesh
 
 
 def define_qr_pos(frame_pathes, pcd, trans=None, mesh_scene=None, debug=False):
@@ -25,7 +26,7 @@ def define_qr_pos(frame_pathes, pcd, trans=None, mesh_scene=None, debug=False):
             qr_pos = get_qr_from_frame(qrcode, frame, trans=trans)
 
             if mesh_scene is not None:
-                true_point = ray_cast_qr_mesh(frame, qr_pos, mesh_scene, trans=trans)
+                true_point = raycast2dest_mesh(frame, qr_pos, mesh_scene, trans=trans)
             else:
                 (rc_pos, rc_dist, true_point) = ray_cast_qr(frame, qr_pos, pcd, step=-0.02, th=0.01)
 
