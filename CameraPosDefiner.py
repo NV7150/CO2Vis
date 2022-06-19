@@ -4,6 +4,8 @@ import open3d as o3d
 import cv2
 import numpy as np
 
+from collections import defaultdict
+
 from ThreeDLib import *
 from FrameLoader import Frame
 
@@ -36,30 +38,53 @@ def get_match_matrix(matches, source_pt, targ_pt, match_rate=0.15, minimum_use=1
     matches = sorted(matches, key=lambda x: x.distance)
     use_points = matches[:int(len(matches) * match_rate)]
 
-    if len(use_points) <= minimum_use:
+    if len(use_points) < minimum_use:
         return np.zeros((3, 3))
 
     source_points = np.float32(
-        [source_pt[match.queryIdx].pt for match in matches]
+        [source_pt[match.queryIdx].pt for match in use_points]
     ).reshape(-1, 1, 2)
     targ_points = np.float32(
-        [targ_pt[match.queryIdx].pt for match in matches]
+        [targ_pt[match.trainIdx].pt for match in use_points]
     ).reshape(-1, 1, 2)
     h, mask = cv2.findHomography(targ_points, source_points, cv2.RANSAC)
 
     return h
 
 
-def cal_viewpoint(camera_file, h, obj):
+def cal_viewpoint(camera_file, h):
     frame = Frame.from_json(f"{camera_file.split('.')[0]}.json")
-    inv_a = np.linalg.inv(frame.intrinsics)
-    myu = 1 / np.linalg.norm(np.dot(inv_a, h[:, :1]))
-    r1 = myu * np.dot(inv_a, h[:, :1])
-    r2 = myu * np.dot(inv_a, h[:, 1:2])
+    inv_ah = np.dot(np.linalg.inv(frame.intrinsics), h)
+    myu = 1 / np.linalg.norm(np.dot(np.linalg.inv(frame.intrinsics), h[0]))
+    myu2 = 1 / np.linalg.norm(np.dot(np.linalg.inv(frame.intrinsics), h[1]))
+    myu = (myu + myu2) / 2
+    r1 = inv_ah[:, 0].flatten()
+    r2 = inv_ah[:, 1].flatten()
     r3 = np.cross(r1, r2)
-    t =
-    
+    r1 /= np.linalg.norm(r1)
+    r2 /= np.linalg.norm(r2)
+    r3 /= np.linalg.norm(r3)
+    t = myu * inv_ah[:, 2].flatten()
+    # myu = 1 / np.linalg.norm(np.dot(inv_a, h[0]))
+    # myu2 = 1 / np.linalg.norm(np.dot(inv_a, h[1]))
+    # myu = (myu + myu2) / 2
+    # r1 = myu * np.dot(inv_a, h[0])
+    # r2 = myu * np.dot(inv_a, h[1])
+    # r3 = np.cross(r1, r2, axis=0)
+    # t = myu * np.dot(inv_a, h[2])
 
+    # r1 = np.dot(inv_a, h[0])
+    # r1 /= np.linalg.norm(r1)
+    # r2 = np.dot(inv_a, h[1])
+    # r2 /= np.linalg.norm(r2)
+    # r3 = np.cross(r1, r2)
+    # t = np.dot(inv_a, h[2])
+    # t /= np.linalg.norm(t)
+
+    # outer_matrix = np.concatenate([np.array([r1,r2,r3]), t.reshape(3,1)], axis=1)
+    outer_matrix = np.concatenate([np.transpose(np.array([r1,r2,r3,t])), np.array([[0,0,0,1]])], axis=0)
+
+    return outer_matrix
 
     # img = cv2.imread(camera_file)
     # row, col, ch = img.shape
@@ -69,16 +94,21 @@ def cal_viewpoint(camera_file, h, obj):
     # new_m = np.dot(np.linalg.inv(frame.intrinsics), np.dot(h, ))
 
 
-def check_camera_points(camera_imgs, scan_imgs, knn=True):
+def check_camera_points(camera_imgs, scan_imgs, knn=False):
+    camera_points = defaultdict(object)
     for c_img in camera_imgs:
+        hs = []
         for s_img in scan_imgs:
-            h = 0
             if knn:
                 match, s_kp, t_kp = get_match_points_knn(c_img, s_img)
                 h = get_match_matrix(match, s_kp, t_kp, match_rate=1.0)
             else:
                 match, s_kp, t_kp = get_match_points(c_img, s_img)
                 h = get_match_matrix(match, s_kp, t_kp)
+            h = np.dot()
+            hs.append(h)
+        camera_points[c_img] = np.mean(np.array(hs), axis=0)
+    return dict(camera_points)
 
 
 

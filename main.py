@@ -15,8 +15,8 @@ def kernel(img):
 
 if __name__ == "__main__":
     visualize(
-        "sampleData/Lab3-17true.ply",
-        "sampleData/Lab3-17true.obj",
-        "sampleData/Lab3-17true",
+        "sampleData/Lab3-17.ply",
+        "sampleData/Lab3-17.obj",
+        "sampleData/Lab3-17",
         random_data=True
     )
