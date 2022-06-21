@@ -11,7 +11,7 @@ def get_current_data(timeout=1):
         response = requests.post(
             url,
             headers={'Content-Type': 'application/json'},
-            json={'search': 'SHOUNAN330A7040'},
+            json={'search': 'SKK'},
             timeout=timeout
         )
 
@@ -33,6 +33,19 @@ def convert_jsons(jsons, time_th=-1):
 
     return datas
 
+def delete_mutiple(datas):
+    sorted_datas = sorted(datas, key=lambda x: (x.sensor_id, x.timeline), reverse=True)
+
+    result = []
+    last = -1
+    for s_d in sorted_datas:
+        if last != s_d.sensor_id:
+            result.append(s_d)
+            last = s_d.sensor_id
+    return result
+
+
+
 
 class SensorData:
     co2: int
@@ -42,9 +55,15 @@ class SensorData:
     @staticmethod
     def from_json(json_data):
         sensor_data = SensorData()
-        # 下４桁に固定
-        sensor_data.sensor_id = str(json_data['sensorid'])[-4:]
+        sensor_data.sensor_id = str(json_data['sensorid'])
         sensor_data.timeline = datetime.datetime.strptime(json_data['timeline'], '%Y-%m-%d %H:%M:%S')
-        sensor_data.co2 = int(json_data['senco2'])
+        try:
+            sensor_data.co2 = float(json_data['senco2'])
+        except:
+            # Noneだとどっかしらで止まるといけないので
+            sensor_data.co2 = 0
 
         return sensor_data
+
+    def __str__(self):
+        return f"{self.sensor_id} in {self.timeline}:{self.co2}"
