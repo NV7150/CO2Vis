@@ -15,8 +15,10 @@ def kernel(img):
 
 if __name__ == "__main__":
     visualize(
-        "sampleData/Lab3-17.ply",
-        "sampleData/Lab3-17.obj",
-        "sampleData/Lab3-17",
-        random_data=True
+        "sampleData/Lab4.ply",
+        "sampleData/Lab4.obj",
+        "sampleData/Lab4",
+        voxel=0.1,
+        reflesh_rate=5,
+        save_file="sampleData/ex-621.json"
     )

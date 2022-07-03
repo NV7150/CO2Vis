@@ -1,3 +1,4 @@
+import json
 import math
 import threading
 
@@ -54,6 +55,8 @@ class Point:
         self.pos = pos
         self.id = s_id
 
+    def to_string(self):
+        return json.dumps({"s_id": self.id, "pos": list(self.pos)})
 
 class Tetrahedron:
     def __init__(self, points):

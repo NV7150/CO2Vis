@@ -1,4 +1,5 @@
 import datetime
+import json
 
 import open3d as o3d
 import open3d.visualization.gui as gui
@@ -16,13 +17,30 @@ from ColorMapper import *
 from PcdLoader import get_uniformed_pcd, load_pcd_with_mesh
 from GuiAdmin import *
 from QrCodeDefiner import define_qr_pos
-from RequestHandler import get_current_data, convert_jsons
+from RequestHandler import get_current_data, convert_jsons, delete_mutiple
 
 
 def parse_dict_to_points(dic):
     points = []
     for key, val in dic.items():
         points.append(Point(np.array(val), str(key).strip()))
+    return points
+
+
+def save_points(points, filename):
+    data_dicts = {}
+    for p in points:
+        data_dicts.setdefault(p.id, list(p.pos))
+    with open(filename, mode="w") as f:
+        f.write(json.dumps(data_dicts))
+
+def load_points(filename):
+    points = []
+    with open(filename) as f:
+        data_j = json.loads(f.read())
+        for (sid, pos) in data_j.items():
+            p = Point(np.array(list(map(float,pos))), sid)
+            points.append(p)
     return points
 
 
@@ -33,7 +51,8 @@ def visualize(
         time_th=-1,
         reflesh_rate=10,
         random_data=False,
-        voxel=-1
+        voxel=-1,
+        save_file="posSave.json"
 ):
     pcd, scene, trans, mesh_id = load_pcd_with_mesh(pcd_path, mesh_path)
     print("pcd loaded")
@@ -41,22 +60,25 @@ def visualize(
     if voxel != -1:
         pcd = pcd.voxel_down_sample(voxel_size=voxel)
 
-    pos_dict = define_qr_pos(
-        glob.glob(f"{folder_path}/frame*.json"),
-        pcd,
-        mesh_scene=scene,
-        trans=trans
-    )
+    if len(glob.glob(save_file)) <= 0:
+        pos_dict = define_qr_pos(
+            glob.glob(f"{folder_path}/frame*.json"),
+            pcd,
+            mesh_scene=scene,
+            trans=trans
+        )
 
-    print("define qr pos completed")
+        print("define qr pos completed")
 
-    points = parse_dict_to_points(pos_dict)
+        points = parse_dict_to_points(pos_dict)
 
-    # 下４桁固定
-    points = [Point(p.pos, p.id[-4:]) for p in points]
-    print(points)
+        points = [Point(p.pos, p.id) for p in points]
+        print(points)
+        save_points(points, save_file)
+    else:
+        points = load_points(save_file)
 
-    color = ColorMapper(500, 700, 1000)
+    color = ColorMapper(500, 750, 1000)
     mapper = SoftmaxMapper(pcd, points, color, cut_th=0)
 
     def update_tick(mapper_ins, gui_ins):
@@ -79,7 +101,8 @@ def visualize(
                 time.sleep(reflesh_rate)
                 continue
 
-            datas = convert_jsons(values, time_th)
+            datas = delete_mutiple(convert_jsons(values, time_th))
+            print([d.__str__() for d in datas])
 
             mapper_ins.update_values(datas)
 
@@ -91,6 +114,8 @@ def visualize(
             labels = []
 
             for p in mapper.sensor_points:
+                if p.id not in mapper.values.keys():
+                    continue
                 label = LabelData()
                 label.pos = p.pos
                 label.label = f"{math.floor(mapper.values[p.id])}"
