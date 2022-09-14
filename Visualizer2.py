@@ -52,7 +52,9 @@ def visualize(
         reflesh_rate=10,
         random_data=False,
         voxel=-1,
-        save_file="posSave.json"
+        save_file="posSave.json",
+        new_api=False,
+        search_bus="SKK"
 ):
     pcd, scene, trans, mesh_id = load_pcd_with_mesh(pcd_path, mesh_path)
     print("pcd loaded")
@@ -79,13 +81,13 @@ def visualize(
         points = load_points(save_file)
 
     color = ColorMapper(500, 750, 1000)
-    mapper = SoftmaxMapper(pcd, points, color, cut_th=0)
+    mapper = SoftmaxMapper(pcd, points, color, cut_th=0, blend_rate=0.3)
 
     def update_tick(mapper_ins, gui_ins):
         while True:
             values = -1
             if not random_data:
-                values = get_current_data()
+                values = get_current_data(new_api=new_api, search=search_bus)
             else:
                 values = {"data": [
                     {
@@ -101,7 +103,7 @@ def visualize(
                 time.sleep(reflesh_rate)
                 continue
 
-            datas = delete_mutiple(convert_jsons(values, time_th))
+            datas = delete_mutiple(convert_jsons(values, time_th, new_api=new_api))
             print([d.__str__() for d in datas])
 
             mapper_ins.update_values(datas)

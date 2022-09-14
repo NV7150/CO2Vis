@@ -15,10 +15,13 @@ def kernel(img):
 
 if __name__ == "__main__":
     visualize(
-        "sampleData/Lab4.ply",
-        "sampleData/Lab4.obj",
-        "sampleData/Lab4",
+        "sampleData/bus.ply",
+        "sampleData/bus2/textured_output.obj",
+        "sampleData/bus2",
         voxel=0.1,
         reflesh_rate=5,
-        save_file="sampleData/ex-621.json"
+        save_file="sampleData/bus2.json",
+        new_api=True,
+        search_bus="EX_HADANO"
+        # random_data=True
     )

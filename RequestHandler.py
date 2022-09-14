@@ -4,14 +4,15 @@ import json
 import requests
 
 
-def get_current_data(timeout=1):
-    url = "http://bus.hwhhome.net:8080/bus"
-
+def get_current_data(timeout=1, new_api=False, search="SKK"):
+    url = "http://bus.hwhhome.net:8080/bus" if not new_api else "http://bus.hwhhome.net/request_sensing"
+    json_req = {"SEARCH_BUS_NUMBER": "EX_HADANO"}
     try:
         response = requests.post(
             url,
             headers={'Content-Type': 'application/json'},
-            json={'search': 'SKK'},
+            # json={('search' if not new_api else "SEARCH_BUS_NUMBER"): search}
+            json=json_req,
             timeout=timeout
         )
 
@@ -20,9 +21,9 @@ def get_current_data(timeout=1):
         return -1
 
 
-def convert_jsons(jsons, time_th=-1):
+def convert_jsons(jsons, time_th=-1, new_api=False):
     raw_datas = jsons['data']
-    datas = list(map(SensorData.from_json, raw_datas))
+    datas = list(map(lambda x: SensorData.from_json(x, new_api), raw_datas))
 
     if time_th == -1:
         return datas
@@ -53,12 +54,21 @@ class SensorData:
     timeline: datetime.datetime
 
     @staticmethod
-    def from_json(json_data):
+    def from_json(json_data, new_api=False):
+        if not new_api:
+            idx_id = "sensorid"
+            idx_co2 = "senco2"
+            idx_time = "timeline"
+        else:
+            idx_id = "IDENTIFIER"
+            idx_co2 = "CO2"
+            idx_time = "DATETIME"
+
         sensor_data = SensorData()
-        sensor_data.sensor_id = str(json_data['sensorid'])
-        sensor_data.timeline = datetime.datetime.strptime(json_data['timeline'], '%Y-%m-%d %H:%M:%S')
+        sensor_data.sensor_id = str(json_data[idx_id])
+        sensor_data.timeline = datetime.datetime.strptime(json_data[idx_time], '%Y-%m-%d %H:%M:%S')
         try:
-            sensor_data.co2 = float(json_data['senco2'])
+            sensor_data.co2 = float(json_data[idx_co2])
         except:
             # Noneだとどっかしらで止まるといけないので
             sensor_data.co2 = 0
