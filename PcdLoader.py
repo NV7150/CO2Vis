@@ -19,7 +19,7 @@ def get_uniformed_pcd(filename):
 def load_pcd(filename):
     pcd = o3d.io.read_point_cloud(filename)
     points = np.asarray(pcd.points)
-    min_vals = np.array([100, 100, 100])
+    min_vals = np.array([100.0, 100.0, 100.0])
     for p in points:
         for (i, v) in enumerate(p):
             if min_vals[i] > v:

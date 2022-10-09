@@ -47,6 +47,32 @@ class ColorMapper:
         return np.array(self.danger_color)
 
 
+class VariableColorMapper:
+    def __init__(self, ranges, colors):
+        if len(ranges) != len(colors) or len(ranges) < 2:
+            raise Exception()
+        sorted_zip = sorted(zip(ranges, colors), key=lambda x: x[0])
+        self.colors = [np.array(z[1]) for z in sorted_zip]
+        self.ranges = [z[0] for z in sorted_zip]
+
+    def __call__(self, v):
+        if v < self.ranges[0]:
+            return self.colors[0]
+        if v >= self.ranges[-1]:
+            return self.colors[-1]
+
+        # i is 1 bigger than true index
+        for i, r in enumerate(self.ranges[1:]):
+            if v > r:
+                continue
+            d = v - self.ranges[i]
+            prop = d / float(self.ranges[i + 1] - self.ranges[i])
+            return self.colors[i] * (1.0 - prop) + self.colors[i + 1] * prop
+
+        return self.colors[-1]
+
+
+
 class Point:
     pos: np.ndarray
     id: str

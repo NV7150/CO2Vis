@@ -2,6 +2,8 @@ import datetime
 import json
 
 import requests
+import pandas as pd
+import numpy as np
 
 
 def get_current_data(timeout=1):
@@ -33,6 +35,7 @@ def convert_jsons(jsons, time_th=-1):
 
     return datas
 
+
 def delete_mutiple(datas):
     sorted_datas = sorted(datas, key=lambda x: (x.sensor_id, x.timeline), reverse=True)
 
@@ -45,23 +48,32 @@ def delete_mutiple(datas):
     return result
 
 
+def convert_csv_data(line):
+    cols = line.replace('","', '\t').split("\t")
+    # cols = np.array(pd.read_csv(line))
+    co2 = int(float(cols[-1].strip().replace('"', "")))
+    timeline = datetime.datetime.strptime(cols[1], '%Y-%m-%d %H:%M:%S')
+    sensor_id = cols[2]
+    return SensorData(co2, sensor_id, timeline)
 
 
 class SensorData:
-    co2: int
-    sensor_id: str
-    timeline: datetime.datetime
+    def __init__(self, co2, sensor_id, timeline):
+        self.co2 = co2
+        self.sensor_id = sensor_id
+        self.timeline = timeline
 
     @staticmethod
     def from_json(json_data):
-        sensor_data = SensorData()
-        sensor_data.sensor_id = str(json_data['sensorid'])
-        sensor_data.timeline = datetime.datetime.strptime(json_data['timeline'], '%Y-%m-%d %H:%M:%S')
+        sensor_id = str(json_data['sensorid'])
+        timeline = datetime.datetime.strptime(json_data['timeline'], '%Y-%m-%d %H:%M:%S')
         try:
-            sensor_data.co2 = float(json_data['senco2'])
+            co2 = float(json_data['senco2'])
         except:
             # Noneだとどっかしらで止まるといけないので
-            sensor_data.co2 = 0
+            co2 = 0
+
+        sensor_data = SensorData(co2, sensor_id, timeline)
 
         return sensor_data
 

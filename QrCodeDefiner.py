@@ -26,7 +26,7 @@ def define_qr_pos(frame_pathes, pcd, trans=None, mesh_scene=None, debug=False):
             qr_pos = get_qr_from_frame(qrcode, frame, trans=trans)
 
             if mesh_scene is not None:
-                true_point = raycast2dest_mesh(frame, qr_pos, mesh_scene, trans=trans)
+                true_point, dist = raycast2dest_mesh(frame.pos + trans, qr_pos, mesh_scene)
             else:
                 (rc_pos, rc_dist, true_point) = ray_cast_qr(frame, qr_pos, pcd, step=-0.02, th=0.01)
 
