@@ -2,18 +2,17 @@ import datetime
 import json
 
 import requests
-import pandas as pd
-import numpy as np
 
 
-def get_current_data(timeout=1):
-    url = "http://bus.hwhhome.net:8080/bus"
-
+def get_current_data(timeout=1, new_api=False, search="SKK"):
+    url = "http://bus.hwhhome.net:8080/bus" if not new_api else "http://bus.hwhhome.net/request_sensing"
+    json_req = {"SEARCH_BUS_NUMBER": "EX_HADANO"}
     try:
         response = requests.post(
             url,
             headers={'Content-Type': 'application/json'},
-            json={'search': 'SKK'},
+            # json={('search' if not new_api else "SEARCH_BUS_NUMBER"): search}
+            json=json_req,
             timeout=timeout
         )
 
@@ -22,9 +21,9 @@ def get_current_data(timeout=1):
         return -1
 
 
-def convert_jsons(jsons, time_th=-1):
+def convert_jsons(jsons, time_th=-1, new_api=False):
     raw_datas = jsons['data']
-    datas = list(map(SensorData.from_json, raw_datas))
+    datas = list(map(lambda x: SensorData.from_json(x, new_api), raw_datas))
 
     if time_th == -1:
         return datas
@@ -34,7 +33,6 @@ def convert_jsons(jsons, time_th=-1):
     datas = [data for data in datas if (now - data.timeline).total_seconds() / 60 < time_th]
 
     return datas
-
 
 def delete_mutiple(datas):
     sorted_datas = sorted(datas, key=lambda x: (x.sensor_id, x.timeline), reverse=True)
@@ -48,32 +46,32 @@ def delete_mutiple(datas):
     return result
 
 
-def convert_csv_data(line):
-    cols = line.replace('","', '\t').split("\t")
-    # cols = np.array(pd.read_csv(line))
-    co2 = int(float(cols[-1].strip().replace('"', "")))
-    timeline = datetime.datetime.strptime(cols[1], '%Y-%m-%d %H:%M:%S')
-    sensor_id = cols[2]
-    return SensorData(co2, sensor_id, timeline)
 
 
 class SensorData:
-    def __init__(self, co2, sensor_id, timeline):
-        self.co2 = co2
-        self.sensor_id = sensor_id
-        self.timeline = timeline
+    co2: int
+    sensor_id: str
+    timeline: datetime.datetime
 
     @staticmethod
-    def from_json(json_data):
-        sensor_id = str(json_data['sensorid'])
-        timeline = datetime.datetime.strptime(json_data['timeline'], '%Y-%m-%d %H:%M:%S')
+    def from_json(json_data, new_api=False):
+        if not new_api:
+            idx_id = "sensorid"
+            idx_co2 = "senco2"
+            idx_time = "timeline"
+        else:
+            idx_id = "IDENTIFIER"
+            idx_co2 = "CO2"
+            idx_time = "DATETIME"
+
+        sensor_data = SensorData()
+        sensor_data.sensor_id = str(json_data[idx_id])
+        sensor_data.timeline = datetime.datetime.strptime(json_data[idx_time], '%Y-%m-%d %H:%M:%S')
         try:
-            co2 = float(json_data['senco2'])
+            sensor_data.co2 = float(json_data[idx_co2])
         except:
             # Noneだとどっかしらで止まるといけないので
-            co2 = 0
-
-        sensor_data = SensorData(co2, sensor_id, timeline)
+            sensor_data.co2 = 0
 
         return sensor_data
 

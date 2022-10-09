@@ -34,7 +34,6 @@ def save_points(points, filename):
     with open(filename, mode="w") as f:
         f.write(json.dumps(data_dicts))
 
-
 def load_points(filename):
     points = []
     with open(filename) as f:
@@ -54,7 +53,8 @@ def visualize(
         random_data=False,
         voxel=-1,
         save_file="posSave.json",
-        virtual_server=None
+        new_api=False,
+        search_bus="SKK"
 ):
     pcd, scene, trans, mesh_id = load_pcd_with_mesh(pcd_path, mesh_path)
     print("pcd loaded")
@@ -80,39 +80,31 @@ def visualize(
     else:
         points = load_points(save_file)
 
-    # color = ColorMapper(500, 750, 1000)
-    color = VariableColorMapper(
-        [500, 700, 1000, 2000],
-        [[0, 1.0, 0], [1.0, 1.0, 0], [1.0, 0, 0], [0.0, 0.0, 0.0]]
-    )
-    mapper = SoftmaxMapper(pcd, points, color, cut_th=0)
+    color = ColorMapper(500, 750, 1000)
+    mapper = SoftmaxMapper(pcd, points, color, cut_th=0, blend_rate=0.3)
 
     def update_tick(mapper_ins, gui_ins):
         while True:
-
-            if virtual_server is not None:
-                datas = virtual_server.next_data()
+            values = -1
+            if not random_data:
+                values = get_current_data(new_api=new_api, search=search_bus)
             else:
-                values = -1
-                if not random_data:
-                    values = get_current_data()
-                else:
-                    values = {"data": [
-                        {
-                            "sensorid": p.id,
-                            "timeline": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                            "senco2": int(random.uniform(500, 1000))
-                        }
-                        for p in points
-                    ]}
+                values = {"data": [
+                    {
+                        "sensorid": p.id,
+                        "timeline": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        "senco2": int(random.uniform(500, 1000))
+                    }
+                    for p in points
+                ]}
 
-                if values == -1:
-                    print("connection timed out")
-                    time.sleep(reflesh_rate)
-                    continue
+            if values == -1:
+                print("connection timed out")
+                time.sleep(reflesh_rate)
+                continue
 
-                datas = delete_mutiple(convert_jsons(values, time_th))
-                print([d.__str__() for d in datas])
+            datas = delete_mutiple(convert_jsons(values, time_th, new_api=new_api))
+            print([d.__str__() for d in datas])
 
             mapper_ins.update_values(datas)
 
@@ -131,12 +123,6 @@ def visualize(
                 label.label = f"{math.floor(mapper.values[p.id])}"
                 labels.append(label)
 
-            if virtual_server:
-                time_label = LabelData()
-                time_label.pos = np.array([-0.2, -0.2, -0.2])
-                time_label.label = f"{virtual_server.curr_time.strftime('%Y-%m-%d %H:%M:%S')}"
-                labels.append(time_label)
-
             gui_ins.update_geometry(n_pcd)
             gui_ins.update_labels(labels)
 
@@ -152,4 +138,3 @@ def visualize(
 
     while flag:
         flag = gui_wrapper.show_in_tick()
-

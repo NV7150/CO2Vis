@@ -304,7 +304,7 @@ class VoronoiMapper:
 
 
 class SoftmaxMapper:
-    def __init__(self, pcd, sensor_points, c, cut_th=-1, cut_limit=3):
+    def __init__(self, pcd, sensor_points, c, cut_th=-1, cut_limit=3, blend_rate=0.5):
         self.c = c
 
         # { sensor_id: [sensor_index] }
@@ -365,6 +365,8 @@ class SoftmaxMapper:
         self.sensor_points = sensor_points
         self.base_colors = np.array(pcd.colors)
 
+        self.blend_rate = blend_rate
+
     def update_value(self, sensor_id, value):
         with self.locker:
             self.values[sensor_id] = value
@@ -376,6 +378,7 @@ class SoftmaxMapper:
 
         for p in affecting_points:
             self.update_point(p)
+
 
     def update_values(self, values):
         affected_points = []
@@ -401,7 +404,7 @@ class SoftmaxMapper:
                 val = self.values[sensor[0]] * sensor[1]
                 val_sum += val
 
-            self.colors[point_index] = self.c(val_sum) * 0.5 + self.base_colors[point_index] * 0.5
+            self.colors[point_index] = self.c(val_sum) * self.blend_rate + self.base_colors[point_index] * (1.0 - self.blend_rate)
 
     def recal_all(self):
         with self.locker:
