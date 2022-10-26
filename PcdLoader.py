@@ -1,5 +1,7 @@
 import open3d as o3d
 import numpy as np
+import json
+
 
 # 旧式
 def get_uniformed_pcd(filename):
@@ -42,3 +44,22 @@ def load_pcd_with_mesh(filename, mesh_filename):
     mesh_id = scene.add_triangles(mesh)
 
     return pcd, scene, trans, mesh_id
+
+
+def pcd2json(pcd, s_pos):
+    points_list = np.array(pcd.points).tolist()
+    colors_list = np.array(pcd.colors).tolist()
+
+    d = {
+        "points": [
+            {"x": p[0], "y": p[1], "z": p[2]} for p in points_list
+        ],
+        "colors": [
+            {"r": c[0], "g": c[1], "b": c[2]} for c in colors_list
+        ],
+        "sensors": [
+            {"id": s.id, "pos": {"x": s.pos[0], "y": s.pos[1], "z": s.pos[2]}} for s in s_pos
+        ]
+    }
+
+    return json.dumps(d)

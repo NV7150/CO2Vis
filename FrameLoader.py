@@ -2,7 +2,6 @@ import json
 import os
 import glob
 import trimesh
-from imageio import imread, imwrite
 import numpy as np
 
 

@@ -304,7 +304,7 @@ class VoronoiMapper:
 
 
 class SoftmaxMapper:
-    def __init__(self, pcd, sensor_points, c, cut_th=-1, cut_limit=3, blend_rate=0.5):
+    def __init__(self, pcd, sensor_points, c, cut_th=-1, cut_limit=3, blend_rate=0.5, a=100):
         self.c = c
 
         # { sensor_id: [sensor_index] }
@@ -329,7 +329,7 @@ class SoftmaxMapper:
                 distances.append(d)
                 ids.append(s_p.id)
             distances = np.array(distances, dtype=float)
-            distances = 1 / np.power(distances, 2)
+            distances = a / np.power(distances, 2)
             # distances = -distances + np.max(distances) + np.min(distances)
             props = get_g(distances)
 
@@ -378,7 +378,6 @@ class SoftmaxMapper:
 
         for p in affecting_points:
             self.update_point(p)
-
 
     def update_values(self, values):
         affected_points = []
