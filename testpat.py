@@ -5,7 +5,8 @@ from CameraPosDefiner import *
 from PcdLoader import *
 from VisLibrary import *
 
-targ_img_name = "sampleData/2022_06_04_12_18_45/frame_00673.jpg"
+# targ_img_name = "sampleData/2022_06_04_12_18_45/frame_00673.jpg"
+targ_img_name = "sampleData/room3/roomscan/imgs/frame_00673.jpg"
 source_img_name = "sampleData/room3/IMG_2934.JPG"
 c_img = cv2.imread(targ_img_name) # scan
 s_img = cv2.imread(source_img_name) # camera
@@ -22,7 +23,8 @@ frame = Frame.from_json(targ_img_name.replace(".jpg", ".json"))
 pos = frame.pose
 
 
-pcd, offset = load_pcd("sampleData/room3.ply")
+# pcd, offset = load_pcd("sampleData/room3.ply")
+pcd, offset = load_pcd("sampleData/room3/roomscan/room3.ply")
 # new_pos = np.dot(outer, pos)
 # new_pos = pos
 # rot_matrix = new_pos[:,:-1][:3]
@@ -42,6 +44,7 @@ center = frame.intrinsics[:,2][:2]
 rot_inv = np.transpose(rot_matrix)
 camera_pos = move_matrix.flatten()
 
+
 def transpose_pos(pos_m_in):
     pos_m = np.array(pos_m_in).reshape(3,1)
     x = (pos_m[0,0] - center[0]) / float(fx)
@@ -55,6 +58,7 @@ def transpose_pos(pos_m_in):
     pos_m = 2 * camera_pos - pos_m
     pos_m += offset
     return pos_m
+
 
 s_i_read = cv2.imread(source_img_name)
 width = np.array(s_i_read).shape[0]

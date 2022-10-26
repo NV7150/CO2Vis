@@ -20,11 +20,12 @@ def get_3dpos_frame(center, frame: Frame, z=1, trans=None):
     return -(position_global_pos - frame.pos) + frame.pos + trans
 
 
-def raycast2dest_mesh(frame: Frame, destination, mesh_scene, trans=None):
+def raycast2dest_mesh(origin_pos, destination, mesh_scene, trans=None):
     if trans is None:
-        trans = np.arange([0, 0, 0])
+        trans = np.zeros(3)
 
-    origin_pos = frame.pos + trans
+    origin_pos = origin_pos + trans
+    destination = destination + trans
 
     vec_to_dest = (origin_pos - destination)
     vec_l = np.linalg.norm(vec_to_dest)
@@ -37,6 +38,8 @@ def raycast2dest_mesh(frame: Frame, destination, mesh_scene, trans=None):
     hit_dist = ans['t_hit'].numpy()[0]
     hit_pos = -direction * hit_dist + origin_pos
 
-    return hit_pos
+    return hit_pos, hit_dist
+
+
 
 

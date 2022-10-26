@@ -47,6 +47,32 @@ class ColorMapper:
         return np.array(self.danger_color)
 
 
+class VariableColorMapper:
+    def __init__(self, ranges, colors):
+        if len(ranges) != len(colors) or len(ranges) < 2:
+            raise Exception()
+        sorted_zip = sorted(zip(ranges, colors), key=lambda x: x[0])
+        self.colors = [np.array(z[1]) for z in sorted_zip]
+        self.ranges = [z[0] for z in sorted_zip]
+
+    def __call__(self, v):
+        if v < self.ranges[0]:
+            return self.colors[0]
+        if v >= self.ranges[-1]:
+            return self.colors[-1]
+
+        # i is 1 bigger than true index
+        for i, r in enumerate(self.ranges[1:]):
+            if v > r:
+                continue
+            d = v - self.ranges[i]
+            prop = d / float(self.ranges[i + 1] - self.ranges[i])
+            return self.colors[i] * (1.0 - prop) + self.colors[i + 1] * prop
+
+        return self.colors[-1]
+
+
+
 class Point:
     pos: np.ndarray
     id: str
@@ -278,7 +304,7 @@ class VoronoiMapper:
 
 
 class SoftmaxMapper:
-    def __init__(self, pcd, sensor_points, c, cut_th=-1, cut_limit=3, blend_rate=0.5):
+    def __init__(self, pcd, sensor_points, c, cut_th=-1, cut_limit=3, blend_rate=0.5, a=100):
         self.c = c
 
         # { sensor_id: [sensor_index] }
@@ -303,7 +329,7 @@ class SoftmaxMapper:
                 distances.append(d)
                 ids.append(s_p.id)
             distances = np.array(distances, dtype=float)
-            distances = 1 / np.power(distances, 2)
+            distances = a / np.power(distances, 2)
             # distances = -distances + np.max(distances) + np.min(distances)
             props = get_g(distances)
 
@@ -352,7 +378,6 @@ class SoftmaxMapper:
 
         for p in affecting_points:
             self.update_point(p)
-
 
     def update_values(self, values):
         affected_points = []
