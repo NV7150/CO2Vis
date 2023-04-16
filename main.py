@@ -20,8 +20,20 @@ if __name__ == "__main__":
         "sampleData/bus2",
         voxel=0.1,
         reflesh_rate=5,
-        save_file="sampleData/bus2.json",
+        save_file="sampleData/bus2-2.json",
         new_api=True,
-        search_bus="EX_HADANO"
-        # random_data=True
+        # search_bus="EX_HADANO",
+        random_data=True
     )
+    # visualize(
+    #     "sampleData/zarubaku.ply",
+    #     "sampleData/zarubaku/textured_output.obj",
+    #     "sampleData/zarubaku",
+    #     voxel=0.1,
+    #     reflesh_rate=5,
+    #     save_file="sampleData/zarubaku-pos.json",
+    #     # new_api=True,
+    #     # search_bus="EX_HADANO",
+    #     random_data=True
+    # )
+

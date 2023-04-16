@@ -1,7 +1,7 @@
 import datetime
 import json
 
-import keyboard
+# import keyboard
 import open3d as o3d
 import open3d.visualization.gui as gui
 import numpy as np
@@ -38,8 +38,11 @@ async def up_server(
         search_bus="SKK",
         ws_host='localhost',
         ws_port=8765,
-        sample=1024
+        sample=1024,
+        resource_con=None,
+        virtual_server=None
 ):
+    print("started")
     pcd, scene, trans, mesh_id = load_pcd_with_mesh(pcd_path, mesh_path)
     print("pcd loaded")
 
@@ -73,25 +76,33 @@ async def up_server(
         print(points)
         save_points(points, save_file)
     else:
+        print("file ", save_file, " found")
         points = load_points(save_file)
 
-    color = ColorMapper(500, 750, 1000)
+    color = ColorMapper(500, 1000, 4000)
     mapper = SoftmaxMapper(pcd, points, color, cut_th=0, blend_rate=0.3)
 
     async def update_tick(ws):
         while True:
             values = -1
-            if not random_data:
-                values = get_current_data(new_api=new_api, search=search_bus)
+            if not (virtual_server is None):
+                values = virtual_server.next_data()
+
             else:
-                values = {"data": [
-                    {
-                        "sensorid": p.id,
-                        "timeline": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                        "senco2": int(random.uniform(500, 1000))
-                    }
-                    for p in points
-                ]}
+                if not random_data:
+                    if resource_con is None:
+                        values = get_current_data(new_api=new_api, search=search_bus)
+                    else:
+                        values = resource_con.read()
+                else:
+                    values = {"data": [
+                        {
+                            "sensorid": p.id,
+                            "timeline": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            "senco2": int(random.uniform(500, 1000))
+                        }
+                        for p in points
+                    ]}
 
             if values == -1:
                 print("connection timed out")
@@ -121,8 +132,8 @@ async def up_server(
             await ws.send(content)
             await asyncio.sleep(reflesh_rate)
 
-            if keyboard.is_pressed('escape'):
-                break
+            # if keyboard.is_pressed('escape'):
+            #     break
     print('starting server')
     # await update_tick(None)
     async with websockets.serve(update_tick, ws_host, ws_port):
